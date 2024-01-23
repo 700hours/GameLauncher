@@ -108,11 +108,15 @@ namespace PSLauncher
             Settings.Default.ServerList = serverList;
 
             this.DialogResult = DialogResult.OK;
+
+            this.Close();
         }
 
         private void cancelButton_Click(object sender, EventArgs e)
         {
             this.DialogResult = DialogResult.Cancel;
+
+            this.Close();
         }
 
         private void moveUp_Click(object sender, EventArgs e)

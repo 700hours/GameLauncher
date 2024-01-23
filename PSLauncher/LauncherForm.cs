@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Security.AccessControl;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -13,6 +14,12 @@ using System.Windows.Forms;
 namespace PSLauncher
 {
 
+    public enum Status
+    {
+        None,
+        Error,
+        Success
+    }
     public enum LaunchDomain
     {
         Live,
@@ -33,6 +40,7 @@ namespace PSLauncher
 
     public partial class LauncherForm : Form
     {
+        public static LauncherForm Instance;
         private HttpClient httpClient;
         private Process psProcess;
 
@@ -61,6 +69,7 @@ namespace PSLauncher
 
         public LauncherForm()
         {
+            Instance = this;
             //
             // init form components
             //
@@ -94,8 +103,8 @@ namespace PSLauncher
             loadServerSelection();
 
             // Make sure selection is valid
-            if(Settings.Default.ServerSelection >= -1 && Settings.Default.ServerSelection < serverSelection.Items.Count)
-                serverSelection.SelectedIndex = Settings.Default.ServerSelection;
+            if(Settings.Default.ServerSelection >= -1 && Settings.Default.ServerSelection < cotf.Form1.Instance.serverSelection.Items.Count)
+                cotf.Form1.Instance.serverSelection.SelectedIndex = Settings.Default.ServerSelection;
 
             string psDefault = Util.getDefaultPlanetSideDirectory();
             
@@ -108,7 +117,7 @@ namespace PSLauncher
             setConsoleWindowState(Settings.Default.OutputShown);
         }
 
-        private void LauncherForm_FormClosing(object sender, FormClosingEventArgs e)
+        public void LauncherForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             if (this.bGameRunning && Settings.Default.OutputShown)
             {
@@ -120,7 +129,7 @@ namespace PSLauncher
             }
         }
 
-        private void stopLaunching()
+        public void stopLaunching()
         {
             setButtonState(GameState.Stopped);
             progressShown(false);
@@ -128,7 +137,7 @@ namespace PSLauncher
             gameState = GameState.Stopped;
         }
 
-        private void startAuthenticating()
+        public void startAuthenticating()
         {
             setButtonState(GameState.Authenticating);
             progressShown(true);
@@ -136,7 +145,7 @@ namespace PSLauncher
             gameState = GameState.Authenticating;
         }
 
-        private void startLaunching()
+        public void startLaunching()
         {
             setButtonState(GameState.Launching);
             progressShown(true);
@@ -144,13 +153,16 @@ namespace PSLauncher
             gameState = GameState.Launching;
         }
 
-        private void setButtonState(GameState state)
+        public void setButtonState(GameState state)
         {
             this.SafeInvoke(a =>
             {
                 switch (state)
                 {
                     case GameState.Stopped:
+                        cotf.Form1.Instance.launch.ForeColor = System.Drawing.Color.Green;
+                        cotf.Form1.Instance.launch.Text = "Launch";
+
                         this.launchGame.BackColor = System.Drawing.Color.FromArgb(128, 255, 128);
                         this.launchGame.Enabled = true;
                         this.launchGame.Text = "Launch";
@@ -165,6 +177,9 @@ namespace PSLauncher
                         break;
 
                     case GameState.Authenticating:
+                        cotf.Form1.Instance.launch.ForeColor = System.Drawing.Color.Blue;
+                        cotf.Form1.Instance.launch.Text = "Authenticating";
+
                         this.launchGame.BackColor = System.Drawing.Color.FromArgb(128, 128, 255);
                         this.launchGame.Enabled = false;
                         this.launchGame.Text = "Authenticating";
@@ -176,23 +191,34 @@ namespace PSLauncher
                         break;
 
                     case GameState.Validating:
+                        cotf.Form1.Instance.launch.ForeColor = System.Drawing.Color.Blue;
+                        cotf.Form1.Instance.launch.Text = "Validating";
+
                         this.launchGame.BackColor = System.Drawing.Color.FromArgb(128, 128, 255);
                         this.launchGame.Enabled = false;
                         this.launchGame.Text = "Validating";
                         break;
 
                     case GameState.Launching:
+                        cotf.Form1.Instance.launch.Text = "Launching";
+
                         this.launchGame.Enabled = false;
                         this.launchGame.Text = "Launching";
                         break;
 
                     case GameState.Running:
+                        cotf.Form1.Instance.launch.ForeColor = System.Drawing.Color.Red;
+                        cotf.Form1.Instance.launch.Text = "Kill";
+
                         this.launchGame.BackColor = System.Drawing.Color.FromArgb(255, 128, 128);
                         this.launchGame.Enabled = true;
                         this.launchGame.Text = "Kill";
                         break;
 
                     case GameState.Stopping:
+                        cotf.Form1.Instance.launch.ForeColor = System.Drawing.Color.Red;
+                        cotf.Form1.Instance.launch.Text = "Killing...";
+
                         this.launchGame.Enabled = false;
                         this.launchGame.Text = "Killing...";
                         break;
@@ -200,7 +226,7 @@ namespace PSLauncher
             });
         }
 
-        private void setButtonValidationState(int counter, int fileCount)
+        public void setButtonValidationState(int counter, int fileCount)
         {
             this.SafeInvoke(a =>
             {
@@ -208,22 +234,28 @@ namespace PSLauncher
             });
         }
 
-        private void setErrorMessage(string error)
+        public void setErrorMessage(string error, Status status)
         {
             this.SafeInvoke(a =>
             {
-                if (error == "")
-                {
-                    this.launchMessage.Visible = false;
-                    return;
-                }
-
-                this.launchMessage.Visible = true;
-                this.launchMessage.Text = error;
+                switch (status)
+                { 
+                    case Status.None:
+                        cotf.Form1.Instance.label_status.ForeColor = System.Drawing.Color.Gray;
+                        break;
+                    case Status.Error:
+                        cotf.Form1.Instance.label_status.ForeColor = System.Drawing.Color.Red;
+                        break;
+                    case Status.Success:
+                        cotf.Form1.Instance.label_status.ForeColor = System.Drawing.Color.Green;
+                        break;
+                }      
+                
+                cotf.Form1.Instance.label_status.Text = error;
             });
         }
 
-        private void launchGame_Click(object sender, EventArgs e)
+        public void launchGame_Click(object sender, EventArgs e)
         {
             if(gameState == GameState.Running) // kill command
             {
@@ -231,7 +263,7 @@ namespace PSLauncher
                 return;
             }
 
-            setErrorMessage("");
+            setErrorMessage("Status: none", Status.None);
 
             if (Settings.Default.ClearOutputOnLaunch)
             {
@@ -241,15 +273,15 @@ namespace PSLauncher
             string path = Settings.Default.PSPath;
             string psExe = Path.Combine(path, SettingsForm.PS_EXE_NAME);
 
-            if (!skipLauncher.Checked && (username.Text == String.Empty || password.Text == String.Empty))
+            if (!(skipLauncher.Checked = true) && (username.Text == String.Empty || password.Text == String.Empty))
             {
-                setErrorMessage("Username or password blank");
+                setErrorMessage("Username or password blank", Status.Error);
                 return;
             }
 
             if (!Util.checkDirForPlanetSide(path))
             {
-                setErrorMessage("Invalid " + SettingsForm.PS_EXE_NAME);
+                setErrorMessage("Invalid " + SettingsForm.PS_EXE_NAME, Status.Error);
                 return;
             }
 
@@ -291,11 +323,11 @@ namespace PSLauncher
 
                 try
                 {
-                    ini.writeEntries(Util.LoadServerList(), serverSelection.SelectedIndex);
+                    ini.writeEntries(Util.LoadServerList(), cotf.Form1.Instance.serverSelection.SelectedIndex);
                 }
                 catch (IOException exp)
                 {
-                    setErrorMessage("Failed to write INI file");
+                    setErrorMessage("Failed to write INI file", Status.Error);
                     addLine(String.Format("ClientINI: error - '{0}' ({1})", exp.Message, inipath));
                     return;
                 }
@@ -304,13 +336,14 @@ namespace PSLauncher
             void LaunchStaging()
             {
                 // magic string to login to planetside from the actual game
-                if (!startPlanetSide(psExe, Path.GetDirectoryName(psExe), String.Join(" ", arguments)))
+                if (!startPlanetSide(Path.Combine(path, psExe), Directory.GetCurrentDirectory(), String.Join(" ", arguments)))
                 {
                     gameStopped();
                 }
                 else
                 {
                     gameRunning();
+                    setErrorMessage("Success", Status.Success);
                 }
             }
 
@@ -799,7 +832,7 @@ namespace PSLauncher
 
             _arguments.Add("/K:" + gameToken);
 
-            return startPlanetSide(psExe, path, String.Join(" ", _arguments));
+            return startPlanetSide(Path.Combine(path, psExe), Directory.GetCurrentDirectory(), String.Join(" ", _arguments));
         }
 
         bool startPlanetSide(string exe, string workingDir, string args)
@@ -807,7 +840,7 @@ namespace PSLauncher
             psProcess = new Process();
 
             psProcess.StartInfo.WorkingDirectory = workingDir; // TODO: should this be where the launcher is for logging?
-            psProcess.StartInfo.FileName = exe;
+            psProcess.StartInfo.FileName = Path.Combine(workingDir, exe);
             psProcess.StartInfo.Arguments = args;
             psProcess.StartInfo.RedirectStandardOutput = true;
             psProcess.StartInfo.RedirectStandardError = true;
@@ -848,7 +881,7 @@ namespace PSLauncher
         {
             this.SafeInvoke(a =>
             {
-                ps_consoleOutput.AppendText(line + Environment.NewLine);
+                cotf.Form1.Instance.log.AppendText(line + Environment.NewLine);
             });
         }
 
@@ -874,7 +907,7 @@ namespace PSLauncher
             gameStopped();
         }
 
-        private void progressShown(bool shown)
+        public void progressShown(bool shown)
         {
             this.SafeInvoke(a =>
             {
@@ -891,19 +924,19 @@ namespace PSLauncher
             });
         }
 
-        private void aboutToolStripMenuItem1_Click(object sender, EventArgs e)
+        public void aboutToolStripMenuItem1_Click(object sender, EventArgs e)
         {
             About a = new About();
             a.StartPosition = FormStartPosition.CenterParent;
             a.ShowDialog(this);
         }
 
-        private void loginFormChangedUpdate()
+        public void loginFormChangedUpdate()
         {
             if (gameState == GameState.Stopped)
             {
                 if ((username.Text.Length > 0 && password.Text.Length > 0 || skipLauncher.Checked) &&
-                    serverSelection.SelectedIndex != -1)
+                    cotf.Form1.Instance.serverSelection.SelectedIndex != -1)
                     launchGame.Enabled = true;
                 else
                     launchGame.Enabled = false;
@@ -923,12 +956,12 @@ namespace PSLauncher
             }
         }
 
-        private void loginFormChanged(object sender, EventArgs e)
+        public void loginFormChanged(object sender, EventArgs e)
         {
             loginFormChangedUpdate();
         }
 
-        private void setConsoleWindowState(bool open)
+        public void setConsoleWindowState(bool open)
         {
             if (!open)
             {
@@ -961,12 +994,12 @@ namespace PSLauncher
             splitContainer1.Panel2Collapsed = !open;
         }
 
-        private void LauncherForm_ResizeBegin(object sender, EventArgs e)
+        public void LauncherForm_ResizeBegin(object sender, EventArgs e)
         {
             splitContainer1.Panel2.SuspendLayout();
         }
 
-        private void LauncherForm_ResizeEnd(object sender, EventArgs e)
+        public void LauncherForm_ResizeEnd(object sender, EventArgs e)
         {
             Win32.SuspendPainting(splitContainer1.Panel2.Handle);
             splitContainer1.Panel2.ResumeLayout();
@@ -974,7 +1007,7 @@ namespace PSLauncher
             this.Refresh();
         }
 
-        private void hideShowOutput_Click_1(object sender, EventArgs e)
+        public void hideShowOutput_Click_1(object sender, EventArgs e)
         {
             if (splitContainer1.Panel2Collapsed)
             {
@@ -988,37 +1021,37 @@ namespace PSLauncher
             }
         }
 
-        private void loadServerSelection()
+        public void loadServerSelection()
         {
-            int index = serverSelection.SelectedIndex;
+            int index = cotf.Form1.Instance.serverSelection.SelectedIndex;
 
             List<ServerEntry> entries = Util.LoadServerList();
-            serverSelection.Items.Clear();
+            cotf.Form1.Instance.serverSelection.Items.Clear();
 
             foreach (ServerEntry entry in entries)
             {
-                serverSelection.Items.Add(entry.name);
+                cotf.Form1.Instance.serverSelection.Items.Add(entry.name);
             }
 
             if (entries.Count > 0 && index != -1)
             {
                 if (index + 1 >= entries.Count)
                 {
-                    serverSelection.SelectedIndex = entries.Count - 1;
+                    cotf.Form1.Instance.serverSelection.SelectedIndex = entries.Count - 1;
                 }
                 else
                 {
-                    serverSelection.SelectedIndex = index;
+                    cotf.Form1.Instance.serverSelection.SelectedIndex = index;
                 }
             }
 
             loginFormChangedUpdate();
 
             // Dont let us select a server without any servers!
-            serverSelection.Enabled = entries.Count != 0;
+            cotf.Form1.Instance.serverSelection.Enabled = entries.Count != 0;
         }
 
-        private void settingsToolStripMenuItem_Click(object sender, EventArgs e)
+        public void settingsToolStripMenuItem_Click(object sender, EventArgs e)
         {
             SettingsForm a = new SettingsForm();
             a.StartPosition = FormStartPosition.CenterParent;
@@ -1027,18 +1060,18 @@ namespace PSLauncher
             loadServerSelection();
         }
 
-        private void selectAll_Click(object sender, EventArgs e)
+        public void selectAll_Click(object sender, EventArgs e)
         {
             this.ps_consoleOutput.Focus();
             this.ps_consoleOutput.SelectAll();
         }
 
-        private void copy_Click(object sender, EventArgs e)
+        public void copy_Click(object sender, EventArgs e)
         {
             this.ps_consoleOutput.Copy();
         }
 
-        private void saveToFile_Click(object sender, EventArgs e)
+        public void saveToFile_Click(object sender, EventArgs e)
         {
             SaveFileDialog saveFile = new SaveFileDialog();
 
@@ -1063,9 +1096,9 @@ namespace PSLauncher
             }
         }
 
-        private void serverSelection_SelectedIndexChanged(object sender, EventArgs e)
+        public void serverSelection_SelectedIndexChanged(object sender, EventArgs e)
         {
-            Settings.Default.ServerSelection = serverSelection.SelectedIndex;
+            Settings.Default.ServerSelection = cotf.Form1.Instance.serverSelection.SelectedIndex;
 
             // Update the login form as well
             loginFormChangedUpdate();

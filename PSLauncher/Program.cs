@@ -39,7 +39,7 @@ namespace PSLauncher
 
             Settings.Default.PropertyChanged += Default_PropertyChanged;
 
-            Application.Run(new LauncherForm());
+            Application.Run(new cotf.Form1());
 
             // check if the launcher was called from the URI psf://
             if (args.Length == 2 && args[0] == "--")
