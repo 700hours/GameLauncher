@@ -424,7 +424,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\cotfAPI\cotfAPI.csproj">
-      <Project>{bc538271-16dd-40bf-95c5-e0700f0fae57}</Project>
+      <Project>{86df94c8-d395-40ac-97c9-daa091de8ea4}</Project>
       <Name>cotfAPI</Name>
     </ProjectReference>
   </ItemGroup>

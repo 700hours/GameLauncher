@@ -79,6 +79,7 @@ namespace PSLauncher.cotf
             Texture.SplitImage(Asset<Bitmap>.Request(".\\Textures\\JF_14thtex", ".png"), new Size(size, size), "background");
             Texture.GenerateColorTextureFiles("tile", Color.DarkGray, new Size(size, size));
             Lib.Initialize(4, new Size(size, size));
+            Lib.InitArray();
             foreach (var item in Lib.tile)
             {
                 item.active = false;
